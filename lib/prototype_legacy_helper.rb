@@ -1,0 +1,2 @@
+module PrototypeLegacyHelper
+end
