@@ -1,4 +1,199 @@
 module PrototypeLegacyHelper
+  # Returns a link of the given +name+ that will trigger a JavaScript +function+ using the
+  # onclick handler and return false after the fact.
+  #
+  # The first argument +name+ is used as the link text.
+  #
+  # The next arguments are optional and may include the javascript function definition and a hash of html_options.
+  #
+  # The +function+ argument can be omitted in favor of an +update_page+
+  # block, which evaluates to a string when the template is rendered
+  # (instead of making an Ajax request first).
+  #
+  # The +html_options+ will accept a hash of html attributes for the link tag. Some examples are :class => "nav_button", :id => "articles_nav_button"
+  #
+  # Note: if you choose to specify the javascript function in a block, but would like to pass html_options, set the +function+ parameter to nil
+  #
+  #
+  # Examples:
+  #   link_to_function "Greeting", "alert('Hello world!')"
+  #     Produces:
+  #       <a onclick="alert('Hello world!'); return false;" href="#">Greeting</a>
+  #
+  #   link_to_function(image_tag("delete"), "if (confirm('Really?')) do_delete()")
+  #     Produces:
+  #       <a onclick="if (confirm('Really?')) do_delete(); return false;" href="#">
+  #         <img src="/images/delete.png?" alt="Delete"/>
+  #       </a>
+  #
+  #   link_to_function("Show me more", nil, :id => "more_link") do |page|
+  #     page[:details].visual_effect  :toggle_blind
+  #     page[:more_link].replace_html "Show me less"
+  #   end
+  #     Produces:
+  #       <a href="#" id="more_link" onclick="try {
+  #         $(&quot;details&quot;).visualEffect(&quot;toggle_blind&quot;);
+  #         $(&quot;more_link&quot;).update(&quot;Show me less&quot;);
+  #       }
+  #       catch (e) {
+  #         alert('RJS error:\n\n' + e.toString());
+  #         alert('$(\&quot;details\&quot;).visualEffect(\&quot;toggle_blind\&quot;);
+  #         \n$(\&quot;more_link\&quot;).update(\&quot;Show me less\&quot;);');
+  #         throw e
+  #       };
+  #       return false;">Show me more</a>
+  #
+  def link_to_function(name, *args, &block)
+    html_options = args.extract_options!.symbolize_keys
+
+    function = block_given? ? update_page(&block) : args[0] || ''
+    onclick = "#{"#{html_options[:onclick]}; " if html_options[:onclick]}#{function}; return false;"
+    href = html_options[:href] || '#'
+
+    content_tag(:a, name, html_options.merge(:href => href, :onclick => onclick))
+  end
+
+  # Returns a link to a remote action defined by <tt>options[:url]</tt>
+  # (using the url_for format) that's called in the background using
+  # XMLHttpRequest. The result of that request can then be inserted into a
+  # DOM object whose id can be specified with <tt>options[:update]</tt>.
+  # Usually, the result would be a partial prepared by the controller with
+  # render :partial.
+  #
+  # Examples:
+  #   # Generates: <a href="#" onclick="new Ajax.Updater('posts', '/blog/destroy/3', {asynchronous:true, evalScripts:true});
+  #   #            return false;">Delete this post</a>
+  #   link_to_remote "Delete this post", :update => "posts",
+  #     :url => { :action => "destroy", :id => post.id }
+  #
+  #   # Generates: <a href="#" onclick="new Ajax.Updater('emails', '/mail/list_emails', {asynchronous:true, evalScripts:true});
+  #   #            return false;"><img alt="Refresh" src="/images/refresh.png?" /></a>
+  #   link_to_remote(image_tag("refresh"), :update => "emails",
+  #     :url => { :action => "list_emails" })
+  #
+  # You can override the generated HTML options by specifying a hash in
+  # <tt>options[:html]</tt>.
+  #
+  #   link_to_remote "Delete this post", :update => "posts",
+  #     :url  => post_url(@post), :method => :delete,
+  #     :html => { :class  => "destructive" }
+  #
+  # You can also specify a hash for <tt>options[:update]</tt> to allow for
+  # easy redirection of output to an other DOM element if a server-side
+  # error occurs:
+  #
+  # Example:
+  #   # Generates: <a href="#" onclick="new Ajax.Updater({success:'posts',failure:'error'}, '/blog/destroy/5',
+  #   #            {asynchronous:true, evalScripts:true}); return false;">Delete this post</a>
+  #   link_to_remote "Delete this post",
+  #     :url => { :action => "destroy", :id => post.id },
+  #     :update => { :success => "posts", :failure => "error" }
+  #
+  # Optionally, you can use the <tt>options[:position]</tt> parameter to
+  # influence how the target DOM element is updated. It must be one of
+  # <tt>:before</tt>, <tt>:top</tt>, <tt>:bottom</tt>, or <tt>:after</tt>.
+  #
+  # The method used is by default POST. You can also specify GET or you
+  # can simulate PUT or DELETE over POST. All specified with <tt>options[:method]</tt>
+  #
+  # Example:
+  #   # Generates: <a href="#" onclick="new Ajax.Request('/person/4', {asynchronous:true, evalScripts:true, method:'delete'});
+  #   #            return false;">Destroy</a>
+  #   link_to_remote "Destroy", :url => person_url(:id => person), :method => :delete
+  #
+  # By default, these remote requests are processed asynchronous during
+  # which various JavaScript callbacks can be triggered (for progress
+  # indicators and the likes). All callbacks get access to the
+  # <tt>request</tt> object, which holds the underlying XMLHttpRequest.
+  #
+  # To access the server response, use <tt>request.responseText</tt>, to
+  # find out the HTTP status, use <tt>request.status</tt>.
+  #
+  # Example:
+  #   # Generates: <a href="#" onclick="new Ajax.Request('/words/undo?n=33', {asynchronous:true, evalScripts:true,
+  #   #            onComplete:function(request){undoRequestCompleted(request)}}); return false;">hello</a>
+  #   word = 'hello'
+  #   link_to_remote word,
+  #     :url => { :action => "undo", :n => word_counter },
+  #     :complete => "undoRequestCompleted(request)"
+  #
+  # The callbacks that may be specified are (in order):
+  #
+  # <tt>:loading</tt>::       Called when the remote document is being
+  #                           loaded with data by the browser.
+  # <tt>:loaded</tt>::        Called when the browser has finished loading
+  #                           the remote document.
+  # <tt>:interactive</tt>::   Called when the user can interact with the
+  #                           remote document, even though it has not
+  #                           finished loading.
+  # <tt>:success</tt>::       Called when the XMLHttpRequest is completed,
+  #                           and the HTTP status code is in the 2XX range.
+  # <tt>:failure</tt>::       Called when the XMLHttpRequest is completed,
+  #                           and the HTTP status code is not in the 2XX
+  #                           range.
+  # <tt>:complete</tt>::      Called when the XMLHttpRequest is complete
+  #                           (fires after success/failure if they are
+  #                           present).
+  #
+  # You can further refine <tt>:success</tt> and <tt>:failure</tt> by
+  # adding additional callbacks for specific status codes.
+  #
+  # Example:
+  #   # Generates: <a href="#" onclick="new Ajax.Request('/testing/action', {asynchronous:true, evalScripts:true,
+  #   #            on404:function(request){alert('Not found...? Wrong URL...?')},
+  #   #            onFailure:function(request){alert('HTTP Error ' + request.status + '!')}}); return false;">hello</a>
+  #   link_to_remote word,
+  #     :url => { :action => "action" },
+  #     404 => "alert('Not found...? Wrong URL...?')",
+  #     :failure => "alert('HTTP Error ' + request.status + '!')"
+  #
+  # A status code callback overrides the success/failure handlers if
+  # present.
+  #
+  # If you for some reason or another need synchronous processing (that'll
+  # block the browser while the request is happening), you can specify
+  # <tt>options[:type] = :synchronous</tt>.
+  #
+  # You can customize further browser side call logic by passing in
+  # JavaScript code snippets via some optional parameters. In their order
+  # of use these are:
+  #
+  # <tt>:confirm</tt>::      Adds confirmation dialog.
+  # <tt>:condition</tt>::    Perform remote request conditionally
+  #                          by this expression. Use this to
+  #                          describe browser-side conditions when
+  #                          request should not be initiated.
+  # <tt>:before</tt>::       Called before request is initiated.
+  # <tt>:after</tt>::        Called immediately after request was
+  #                          initiated and before <tt>:loading</tt>.
+  # <tt>:submit</tt>::       Specifies the DOM element ID that's used
+  #                          as the parent of the form elements. By
+  #                          default this is the current form, but
+  #                          it could just as well be the ID of a
+  #                          table row or any other DOM element.
+  # <tt>:with</tt>::         A JavaScript expression specifying
+  #                          the parameters for the XMLHttpRequest.
+  #                          Any expressions should return a valid
+  #                          URL query string.
+  #
+  #                          Example:
+  #
+  #                            :with => "'name=' + $('name').value"
+  #
+  # You can generate a link that uses AJAX in the general case, while
+  # degrading gracefully to plain link behavior in the absence of
+  # JavaScript by setting <tt>html_options[:href]</tt> to an alternate URL.
+  # Note the extra curly braces around the <tt>options</tt> hash separate
+  # it as the second parameter from <tt>html_options</tt>, the third.
+  #
+  # Example:
+  #   link_to_remote "Delete this post",
+  #     { :update => "posts", :url => { :action => "destroy", :id => post.id } },
+  #     :href => url_for(:action => "destroy", :id => post.id)
+  def link_to_remote(name, options = {}, html_options = nil)
+    link_to_function(name, remote_function(options), html_options || options.delete(:html))
+  end
+
   # Observes the field with the DOM ID specified by +field_id+ and calls a
   # callback when its contents have changed. The default callback is an
   # Ajax call. By default the value of the observed field is sent as a
