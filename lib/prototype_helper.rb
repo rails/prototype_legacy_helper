@@ -1,4 +1,4 @@
-module PrototypeLegacyHelper
+module PrototypeHelper
   # Creates a button with an onclick event which calls a remote action
   # via XMLHttpRequest
   # The options for specifying the target with :url

@@ -1,7 +1,7 @@
 require 'test/unit'
 require 'prototype_legacy_helper'
 
-class TestPrototypeLegacyHelper < ActionView::TestCase
+class TestPrototypeHelper < ActionView::TestCase
   def test_observe_form
     assert_dom_equal %(<script type=\"text/javascript\">\n//<![CDATA[\nnew Form.Observer('cart', 2, function(element, value) {new Ajax.Request('http://www.example.com/cart_changed', {asynchronous:true, evalScripts:true, parameters:value})})\n//]]>\n</script>),
       observe_form("cart", :frequency => 2, :url => { :action => "cart_changed" })
