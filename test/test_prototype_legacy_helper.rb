@@ -37,4 +37,16 @@ class TestPrototypeLegacyHelper < ActionView::TestCase
     assert_dom_equal %(<script type=\"text/javascript\">\n//<![CDATA[\nnew Form.Element.EventObserver('glass', function(element, value) {new Ajax.Request('http://www.example.com/', {asynchronous:true, evalScripts:true, parameters:value})})\n//]]>\n</script>),
       observe_field("glass")
   end
+
+  def test_periodically_call_remote
+    assert_dom_equal %(<script type="text/javascript">\n//<![CDATA[\nnew PeriodicalExecuter(function() {new Ajax.Updater('schremser_bier', 'http://www.example.com/mehr_bier', {asynchronous:true, evalScripts:true})}, 10)\n//]]>\n</script>),
+      periodically_call_remote(:update => "schremser_bier", :url => { :action => "mehr_bier" })
+  end
+
+  def test_periodically_call_remote_with_frequency
+    assert_dom_equal(
+      "<script type=\"text/javascript\">\n//<![CDATA[\nnew PeriodicalExecuter(function() {new Ajax.Request('http://www.example.com/', {asynchronous:true, evalScripts:true})}, 2)\n//]]>\n</script>",
+      periodically_call_remote(:frequency => 2)
+    )
+  end
 end
