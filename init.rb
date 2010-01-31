@@ -1,1 +1,0 @@
-require 'prototype_helper'
