@@ -330,7 +330,7 @@ module PrototypeHelper
 
     concat(form_remote_tag(options))
     fields_for(object_name, *(args << options), &proc)
-    concat('</form>'.html_safe!)
+    concat('</form>'.html_safe)
   end
   alias_method :form_remote_for, :remote_form_for
 
