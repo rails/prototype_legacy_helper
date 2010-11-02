@@ -428,3 +428,5 @@ module PrototypeHelper
       javascript_tag(javascript)
     end
 end
+
+ActionController::Base.helper PrototypeHelper
